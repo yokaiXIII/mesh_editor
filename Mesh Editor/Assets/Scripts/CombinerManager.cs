@@ -115,11 +115,13 @@ public class CombinerManager : MonoBehaviour
                 for (int vertexIndex = 0; vertexIndex < _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices.Count; vertexIndex++)
                 {
                     Vector3 startVertex = _objectsToCombine[pieceIndex].gameObject.transform.position + _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices[vertexIndex]; // Get the start vertex position
-                    Vector3 endVertex = (_objectsToCombine[pieceIndex].gameObject.transform.up + _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices[vertexIndex]) * 1000; // Get the start vertex position
-
+                    // Vector3 endVertex = (_objectsToCombine[pieceIndex].gameObject.transform.up + _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices[vertexIndex] + _objectsToCombine[pieceIndex].gameObject.transform.position).normalized * 1000;
+                    Vector3 endVertex = _objectsToCombine[pieceIndex].gameObject.transform.up + _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices[vertexIndex] + _objectsToCombine[pieceIndex].gameObject.transform.position;
+                    Debug.DrawLine(endVertex, startVertex, Color.red); // Draw ray UP
+                    // RayCast UP
                     RaycastHit[] hitInfos = Physics.RaycastAll(endVertex, startVertex - endVertex, 1000f); // Raycast to get all hit objects
                     int hitCount = 0;
-                    for(int i = 0; i < hitInfos.Length; i++)
+                    for (int i = 0; i < hitInfos.Length; i++)
                     {
                         if (hitInfos[i].collider.gameObject.TryGetComponent(out ComboPiece hitComboPiece))
                         {
@@ -129,12 +131,31 @@ public class CombinerManager : MonoBehaviour
                             }
                         }
                     }
-                    
-                    if (hitCount <= 0)
+
+                    if (hitCount > 0 && hitCount % 2 == 1 && !_brokenVertices.Contains(startVertex))
                     {
-                        continue; // Skip to the next vertex if no hits were detected
+                        _brokenVertices.Add(startVertex); // Add the hit point to the broken vertices list
                     }
-                    else if (hitCount % 2 == 1)
+
+
+                    // RayCast DOWN
+                    endVertex = _objectsToCombine[pieceIndex].gameObject.transform.up * -1 + _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices[vertexIndex] + _objectsToCombine[pieceIndex].gameObject.transform.position;
+
+                    Debug.DrawLine(endVertex, startVertex, Color.red); // Draw ray DOWN
+                    hitInfos = Physics.RaycastAll(endVertex, startVertex - endVertex * -1, 1000f); // Raycast to get all hit objects
+                    hitCount = 0;
+                    for (int i = 0; i < hitInfos.Length; i++)
+                    {
+                        if (hitInfos[i].collider.gameObject.TryGetComponent(out ComboPiece hitComboPiece))
+                        {
+                            if (hitComboPiece != _objectsToCombine[pieceIndex]) // Ensure the hit ComboPiece is not the same as the current piece
+                            {
+                                hitCount++; // Increment the hit count for valid hits
+                            }
+                        }
+                    }
+
+                    if (hitCount > 0 && hitCount % 2 == 1 && !_brokenVertices.Contains(startVertex))
                     {
                         _brokenVertices.Add(startVertex); // Add the hit point to the broken vertices list
                     }
