@@ -66,7 +66,7 @@ public class CombinerManager : MonoBehaviour
         for (int i = 0; i < _brokenVertices.Count; i++)
         {
             Gizmos.color = Color.cyan; // Set the color for Gizmos
-            // Gizmos.DrawSphere(_brokenVertices[i], 0.01f); // Draw a sphere at each collision point
+            Gizmos.DrawSphere(_brokenVertices[i], 0.01f); // Draw a sphere at each collision point
         }
     }
 
@@ -115,19 +115,28 @@ public class CombinerManager : MonoBehaviour
                 for (int vertexIndex = 0; vertexIndex < _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices.Count; vertexIndex++)
                 {
                     Vector3 startVertex = _objectsToCombine[pieceIndex].gameObject.transform.position + _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices[vertexIndex]; // Get the start vertex position
-                    RaycastHit hitInfo;
+                    Vector3 endVertex = (_objectsToCombine[pieceIndex].gameObject.transform.up + _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices[vertexIndex]) * 1000; // Get the start vertex position
 
-                    if (Physics.Raycast(startVertex, _objectsToCombine[pieceIndex].gameObject.transform.position + Vector3.up, out hitInfo))
+                    RaycastHit[] hitInfos = Physics.RaycastAll(endVertex, startVertex - endVertex, 1000f); // Raycast to get all hit objects
+                    int hitCount = 0;
+                    for(int i = 0; i < hitInfos.Length; i++)
                     {
-                        Debug.DrawRay(startVertex, _objectsToCombine[pieceIndex].gameObject.transform.position + Vector3.up, Color.red); // Draw a ray for debugging
-                        // Check if the hit object is a ComboPiece
-                        if (hitInfo.collider.gameObject.TryGetComponent(out ComboPiece hitComboPiece))
+                        if (hitInfos[i].collider.gameObject.TryGetComponent(out ComboPiece hitComboPiece))
                         {
                             if (hitComboPiece != _objectsToCombine[pieceIndex]) // Ensure the hit ComboPiece is not the same as the current piece
                             {
-                                _brokenVertices.Add(hitInfo.point); // Add the hit point to the broken vertices list
+                                hitCount++; // Increment the hit count for valid hits
                             }
                         }
+                    }
+                    
+                    if (hitCount <= 0)
+                    {
+                        continue; // Skip to the next vertex if no hits were detected
+                    }
+                    else if (hitCount % 2 == 1)
+                    {
+                        _brokenVertices.Add(startVertex); // Add the hit point to the broken vertices list
                     }
                 }
             }

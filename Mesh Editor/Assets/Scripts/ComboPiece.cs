@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(Collider))] // Ensure the GameObject has MeshFilter and MeshRenderer components
 public class ComboPiece : MonoBehaviour
 {
     [SerializeField] private MeshFilter _meshFilter; // MeshFilter component to hold the mesh
@@ -12,12 +13,16 @@ public class ComboPiece : MonoBehaviour
     [SerializeField] private bool _debug = false; // Flag to enable or disable debug drawing
 
     public Vector3 StartPosition { get; set; } // Public property to access the start position
+
+    private Collider _collider; // Collider for the triangle, if needed
+    public Collider Collider => _collider; // Public property to access the collider
     void Start()
     {
         StartPosition = this.transform.position; // Set the start position to the current position of the GameObject
         _meshFilter = GetComponent<MeshFilter>(); // Get the MeshFilter component attached to this GameObject
         _meshRenderer = GetComponent<MeshRenderer>(); // Get the MeshRenderer component attached to this GameObject
-         Vector3[] vertices = _meshFilter.mesh.vertices; // Initialize the list of vertices
+        _collider = GetComponent<Collider>(); // Get the MeshRenderer component attached to this GameObject
+        Vector3[] vertices = _meshFilter.mesh.vertices; // Initialize the list of vertices
         int[] meshTriangles = _meshFilter.mesh.triangles; // Initialize the list of triangles
         Triangle triangle = new Triangle(); // Create a new Triangle object
         for (int i = 1; i < meshTriangles.Length; i++)
@@ -33,7 +38,7 @@ public class ComboPiece : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        if( _triangles == null || _triangles.Count == 0 || _debug == false)
+        if (_triangles == null || _triangles.Count == 0 || _debug == false)
         {
             return; // Exit if there are no triangles to draw
         }
@@ -46,9 +51,9 @@ public class ComboPiece : MonoBehaviour
                 Gizmos.DrawSphere(this.transform.position + vertex, 0.01f); // Draw a sphere at the vertex position
 
                 Gizmos.color = Color.cyan; // Set the color for Gizmos
-                Gizmos.DrawLine(this.transform.position + _triangles[i].vertices[j], this.transform.position +_triangles[i].vertices[ j >= (_triangles[i].vertices.Count - 1) ? 0 : (j + 1) ]); // Draw the lines for the triangle vertices
+                Gizmos.DrawLine(this.transform.position + _triangles[i].vertices[j], this.transform.position + _triangles[i].vertices[j >= (_triangles[i].vertices.Count - 1) ? 0 : (j + 1)]); // Draw the lines for the triangle vertices
             }
-            
+
         }
     }
 }
@@ -59,7 +64,6 @@ public class Triangle
     private List<int> _brokenVertices = new List<int>(); // List of broken vertices, if any
     public List<int> BrokenVertices => _brokenVertices; // List of broken vertices, if any
     public bool IsBroken => _brokenVertices.Count > 0; // Check if the triangle is broken
-
     public Triangle()
     {
         vertices = new List<Vector3>(); // Initialize the vertices
