@@ -64,6 +64,7 @@ public class Triangle
     private List<int> _brokenVertices = new List<int>(); // List of broken vertices, if any
     public List<int> BrokenVertices => _brokenVertices; // List of broken vertices, if any
     public bool IsBroken => _brokenVertices.Count > 0; // Check if the triangle is broken
+    public bool IsCompleteBroken => _brokenVertices.Count >= 3; // Check if the triangle is completely broken
     public Triangle()
     {
         vertices = new List<Vector3>(); // Initialize the vertices
