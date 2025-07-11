@@ -18,6 +18,7 @@ public class ComboPiece : MonoBehaviour
     public Collider Collider => _collider; // Public property to access the collider
     void Start()
     {
+        _triangles = new List<Triangle>(); // Initialize the list of triangles
         StartPosition = this.transform.position; // Set the start position to the current position of the GameObject
         _meshFilter = GetComponent<MeshFilter>(); // Get the MeshFilter component attached to this GameObject
         _meshRenderer = GetComponent<MeshRenderer>(); // Get the MeshRenderer component attached to this GameObject
@@ -25,6 +26,7 @@ public class ComboPiece : MonoBehaviour
         Vector3[] vertices = _meshFilter.mesh.vertices; // Initialize the list of vertices
         int[] meshTriangles = _meshFilter.mesh.triangles; // Initialize the list of triangles
         Triangle triangle = new Triangle(); // Create a new Triangle object
+        triangle.GameObject = this.gameObject; // Set the GameObject for the triangle
         for (int i = 1; i < meshTriangles.Length; i++)
         {
             triangle.AddVertex(vertices[meshTriangles[i - 1]]); // Add the vertex to the triangle
@@ -32,6 +34,7 @@ public class ComboPiece : MonoBehaviour
             {
                 _triangles.Add(triangle); // Add the triangle to the list of triangles
                 triangle = new Triangle(); // Create a new Triangle
+                triangle.GameObject = this.gameObject; // Set the GameObject for the triangle
             }
         }
     }
@@ -65,6 +68,7 @@ public class Triangle
     public List<int> BrokenVertices => _brokenVertices; // List of broken vertices, if any
     public bool IsBroken => _brokenVertices.Count > 0; // Check if the triangle is broken
     public bool IsCompleteBroken => _brokenVertices.Count >= 3; // Check if the triangle is completely broken
+    public GameObject GameObject { get; set; } // GameObject that this triangle belongs to
     public Triangle()
     {
         vertices = new List<Vector3>(); // Initialize the vertices
