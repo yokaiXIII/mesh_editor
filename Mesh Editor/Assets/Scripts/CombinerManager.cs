@@ -26,6 +26,11 @@ public class CombinerManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Space)) // Check if the space key is pressed
+        {
+            CombinePieces(); // Combine the pieces if the space key is pressed            
+        }
+
         bool isMoved = CheckIfMoved();
         if (!isMoved)
         {
@@ -34,11 +39,6 @@ public class CombinerManager : MonoBehaviour
 
         GetCollisionPoints(); // Get the collision points for the current frame
         CheckVerticesState();
-
-        if (Input.GetKeyDown(KeyCode.Space)) // Check if the space key is pressed
-        {
-            CombinePieces(); // Combine the pieces if the space key is pressed            
-        }
     }
 
     private bool CheckIfMoved()
@@ -67,13 +67,13 @@ public class CombinerManager : MonoBehaviour
             Gizmos.color = Color.red; // Set the color for Gizmos
             Gizmos.DrawSphere(_collisionPoints[i], 0.01f); // Draw a sphere at each collision point
         }
-        
+
         for (int i = 0; i < _brokenVertices.Count; i++)
         {
             Gizmos.color = Color.cyan; // Set the color for Gizmos
             Gizmos.DrawSphere(_brokenVertices[i], 0.01f); // Draw a sphere at each collision point
         }
-        
+
     }
 
     private void GetCollisionPoints()
@@ -103,6 +103,7 @@ public class CombinerManager : MonoBehaviour
                         }
                     }
                     // Raycast to get the collision point in the opposite direction
+                    Debug.DrawRay(startVertex, endVertex - startVertex, Color.green); // Draw a ray from the start vertex to the end vertex
                     if (Physics.Raycast(endVertex, startVertex - endVertex, out hitInfo, Vector3.Distance(endVertex, startVertex)))
                     {
                         // Check if the hit object is a ComboPiece
@@ -190,23 +191,76 @@ public class CombinerManager : MonoBehaviour
                 {
                     continue; // Skip triangles that are completely broken 
                 }
-
                 // Create a new Triangle object to hold the vertices of the triangle
-                Triangle triangle = new Triangle(); // Create a new Triangle object
-                for (int vertexIndex = 0; vertexIndex < _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices.Count; vertexIndex++)
+                okTriangles.Add(fixBrokenTriangle(_objectsToCombine[pieceIndex].Triangles[triangleIndex], out List<int> collisionIndexs));
+                if (collisionIndexs.Count > 0)
                 {
-                    Vector3 vertex = _objectsToCombine[pieceIndex].gameObject.transform.position + _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices[vertexIndex]; // Get the vertex position
-                    triangle.AddVertex(vertex); // Add the vertex to the triangle
-                    okVertices.Add(vertex); // Add the vertex to the list of ok vertices
+                    for (int i = 0; i < collisionIndexs.Count; i++)
+                    {
+                        if (collisionIndexs[i] < 0 || collisionIndexs[i] >= _collisionPoints.Count)
+                        {
+                            continue; // Skip invalid indices
+                        }
+                        okVertices.Add(_collisionPoints[collisionIndexs[i]]); // Add the collision point to the list of vertices
+                    }
                 }
-                okTriangles.Add(triangle); // Add the triangle to the list of ok triangles
+            }
+        }
+        List<int> trianglesIndices = new List<int>(); // List to hold the indices of the triangles
+        List<Vector3> vertices = new List<Vector3>(); // List to hold the vertices of the combined mesh
+
+        // Vector3 offsetPosition = GetOffsetPosition(); // Get the average position of all ComboPieces to use as an offset
+        for (int i = 0; i < okTriangles.Count; i++)
+        {
+            for (int j = 0; j < okTriangles[i].vertices.Count; j++)
+            {
+                Vector3 vertex = okTriangles[i].vertices[j] + (okTriangles[i].GameObject != null ? okTriangles[i].GameObject.transform.position : Vector3.zero); // Get the vertex from the triangle
+                if (!vertices.Contains(vertex)) // Check if the vertex is already in the list
+                {
+                    vertices.Add(vertex); // Add the vertex to the list of vertices
+                }
+                trianglesIndices.Add(vertices.IndexOf(vertex)); // Add the index of the vertex to the list of triangle indices
             }
         }
 
-        //adds collision points to the okVertices list
-        for (int i = 0; i < _collisionPoints.Count; i++)
+        combinedMesh.vertices = vertices.ToArray(); // Set the vertices of the combined mesh
+        combinedMesh.triangles = trianglesIndices.ToArray(); // Set the triangle indices of the combined mesh
+        combinedMesh.RecalculateNormals(); // Recalculate the normals of the combined mesh
+    }
+
+    private Triangle fixBrokenTriangle(Triangle triangle, out List<int> CollisionPointIndexs)
+    {
+        CollisionPointIndexs = new List<int>(); // Initialize the CollisionPointIndexs to -1
+        if (!triangle.IsBroken)
         {
-            okVertices.Add(_collisionPoints[i]);
+            return triangle; // If the triangle is not broken, return it as is
         }
+        for (int brokenIndex = 0; brokenIndex < triangle.BrokenVertices.Count; brokenIndex++)
+        {
+            Vector3 brokenVertex = triangle.vertices[brokenIndex]; // Get the broken vertex from the triangle
+            float distance = Mathf.Infinity;
+            int closestIndex = -1;
+            for (int i = 0; i < _collisionPoints.Count; i++)
+            {
+                if (Vector3.Distance(brokenVertex, _collisionPoints[i]) < distance) // Check if the distance to the collision point is small enough
+                {
+                    distance = Vector3.Distance(brokenVertex, _collisionPoints[i]);
+                    closestIndex = i; // Update the closest index if a closer collision point is found
+                }
+            }
+            CollisionPointIndexs.Add(closestIndex); // Set the CollisionPointIndex to the index of the collision point
+            triangle.vertices[brokenIndex] = _collisionPoints[closestIndex]; // Add the collision point to the fixed triangle
+        }
+        return triangle; // Return the fixed triangle
+    }
+
+    private Vector3 GetOffsetPosition()
+    {
+        Vector3 offsetPosition = Vector3.zero; // Initialize the offset position to zero
+        for (int i = 0; i < _objectsToCombine.Count; i++)
+        {
+            offsetPosition += _objectsToCombine[i].transform.position; // Add the position of each ComboPiece to the offset position
+        }
+        return offsetPosition / _objectsToCombine.Count; // Return the average position of all ComboPieces
     }
 }
