@@ -81,8 +81,6 @@ public class CombinerManager : MonoBehaviour
         for (int pieceIndex = 0; pieceIndex < _objectsToCombine.Count; pieceIndex++)
         {
             _collisionPoints.Clear(); // Clear the list of collision points before checking for collisions
-            _objectsToCombine[pieceIndex].StartPosition = _objectsToCombine[pieceIndex].transform.position; // Update the start position to the current position of the GameObject
-
             for (int triangleIndex = 0; triangleIndex < _objectsToCombine[pieceIndex].Triangles.Count; triangleIndex++)
             {
                 for (int vertexIndex = 0; vertexIndex < _objectsToCombine[pieceIndex].Triangles[triangleIndex].vertices.Count; vertexIndex++)
@@ -103,7 +101,6 @@ public class CombinerManager : MonoBehaviour
                         }
                     }
                     // Raycast to get the collision point in the opposite direction
-                    Debug.DrawRay(startVertex, endVertex - startVertex, Color.green); // Draw a ray from the start vertex to the end vertex
                     if (Physics.Raycast(endVertex, startVertex - endVertex, out hitInfo, Vector3.Distance(endVertex, startVertex)))
                     {
                         // Check if the hit object is a ComboPiece
@@ -116,6 +113,7 @@ public class CombinerManager : MonoBehaviour
                         }
                     }
                 }
+                _objectsToCombine[pieceIndex].StartPosition = _objectsToCombine[pieceIndex].transform.position; // Update the start position to the current position of the GameObject
             }
         }
     }
